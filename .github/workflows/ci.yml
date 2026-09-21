@@ -1,0 +1,28 @@
+name: Pipeline de Integración Continua (CI)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Descargar Código fuente
+      uses: actions/checkout@v3
+
+    - name: Configurar JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: 'maven'
+
+    - name: Compilar Proyecto (Build)
+      run: mvn clean compile
+
+    - name: Ejecutar Pruebas Automatizadas (Unitarias e Integración)
+      run: mvn test
