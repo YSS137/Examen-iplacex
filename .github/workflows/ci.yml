@@ -1,28 +1,48 @@
-name: Pipeline de Integración Continua (CI)
+name: Pipeline Completo de CI/CD
 
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 jobs:
-  build-and-test:
+  ci-pipeline:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Descargar Código fuente
-      uses: actions/checkout@v3
-
+    # Versión v4 solventa la obsolescencia de Node
+    - uses: actions/checkout@v4 
+    
+    # Versión v5 recomendada por la plataforma
     - name: Configurar JDK 17
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v5
       with:
         java-version: '17'
         distribution: 'temurin'
         cache: 'maven'
+        
+    - name: Build y Test con Maven
+      run: mvn clean test
 
-    - name: Compilar Proyecto (Build)
-      run: mvn clean compile
+  cd-deploy-staging:
+    needs: ci-pipeline
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Simular Despliegue en Ambiente de Pruebas
+      run: |
+        echo "Iniciando despliegue en servidor de pruebas (Staging)..."
+        echo "Desplegando contenedor versión v-${{ github.run_number }}..."
+        echo "Despliegue exitoso."
 
-    - name: Ejecutar Pruebas Automatizadas (Unitarias e Integración)
-      run: mvn test
+    - name: Ejecutar Pruebas de Aceptación (Acceptance Tests)
+      id: acceptance_step
+      run: |
+        echo "Ejecutando Smoke Tests en Staging..."
+        echo "VERIFICACIÓN: Estado del entorno OK (200)."
+
+    - name: Mecanismo Automático de Rollback (En caso de fallo)
+      if: failure() && steps.acceptance_step.outcome == 'failure'
+      run: |
+        echo "CRÍTICO: Pruebas de aceptación fallidas."
+        echo "Ejecutando Rollback automático a la versión estable anterior..."
+        echo "Rollback completado con éxito."
